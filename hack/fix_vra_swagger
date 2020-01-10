@@ -100,6 +100,86 @@ def add_security(swagger):
                 swagger['paths'][p][method]['security'] = bearer_security
 
 
+def add_blockdevice_persistent(swagger):
+    bd_props = swagger['definitions']['BlockDevice']['properties']
+    if 'persistent' not in bd_props:
+        bd_props['persistent'] = {
+            "description": "Indicates whether the block device survives a delete action.",
+            "type": "boolean",
+            "example": True,
+        }
+
+
+def add_blockdevice_delete_purge(swagger):
+    bd = swagger['paths']['/iaas/api/block-devices/{id}']['delete']
+    for p in bd['parameters']:
+        if p['name'] == 'purge':
+            return
+    bd['parameters'].append({
+        "in": "query",
+        "name": "purge",
+        "description": "Indicates if the disk has to be completely destroyed or should be kept in the system. Valid only for block devices with 'persistent' set to true.",
+         "type": "boolean",
+         "required": False
+    })
+
+
+def add_blockdevice_resize(swagger):
+    bd = swagger['paths']['/iaas/api/block-devices/{id}']
+    if 'post' in bd:
+        return
+    bd['post'] = {
+        "summary": "Resize BlockDevice",
+        "produces": [
+            "application/json",
+            "app/json"
+        ],
+        "description": "Resize operation on block device.",
+        "operationId": "resizeBlockDevice",
+        "responses": {
+            "202": {
+                "schema": {
+                    "$ref": "#/definitions/RequestTracker"
+                },
+                "description": "successful operation"
+            },
+            "204": {
+                "description": "No Content"
+            },
+            "403": {
+                "description": "Forbidden"
+            }
+        },
+        "parameters": [
+            {
+                "in": "path",
+                "name": "id",
+                "description": "The ID of the block device.",
+                "type": "string",
+                "required": True
+            },
+            {
+                "in": "query",
+                "name": "capacityInGB",
+                "format": "int32",
+                "description": "Resize Capacity in GB",
+                "type": "integer",
+                "required": True
+            },
+            {
+                "in": "query",
+                "name": "apiVersion",
+                "description": "The version of the API in yyyy-MM-dd format (UTC). For versioning information please refer to /iaas/api/about",
+                "type": "string",
+                "required": False
+            }
+        ],
+        "tags": [
+            "Disk"
+        ]
+    }
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--omit-security', action='store_false')
@@ -111,6 +191,10 @@ if __name__ == "__main__":
     add_filter_params(swagger)
     add_204(swagger)
     change_response_model_to_request_tracker(swagger)
+
+    add_blockdevice_persistent(swagger)
+    add_blockdevice_delete_purge(swagger)
+    add_blockdevice_resize(swagger)
 
     if args.omit_security:
         add_global_security(swagger)
