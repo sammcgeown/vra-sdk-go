@@ -183,6 +183,21 @@ def add_blockdevice_resize(swagger):
     }
 
 
+def add_404_not_found(swagger):
+    # List of paths and operations to add a 404 not found
+    paths = [
+        ('/iaas/api/block-devices/{id}', 'get'),
+    ]
+
+    # Update the needed paths
+    for (p, op) in paths:
+        responses = swagger['paths'][p][op]['responses']
+        if '404' not in responses:
+            responses['404'] = {
+                "description": "Not Found",
+            }
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--omit-security', action='store_false')
@@ -198,6 +213,7 @@ if __name__ == "__main__":
     add_blockdevice_persistent(swagger)
     add_blockdevice_delete_purge(swagger)
     add_blockdevice_resize(swagger)
+    add_404_not_found(swagger)
 
     if args.omit_security:
         add_global_security(swagger)
